@@ -209,20 +209,20 @@ export default function ChatPanel() {
             <CardHeader className="p-4 space-y-3">
                 <div className="flex justify-between items-center">
                     <CardTitle>Next-AI-Drawio</CardTitle>
-                    <a
-                        href="https://github.com/DayuanJiang/next-ai-draw-io"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                        <FaGithub className="w-6 h-6" />
-                    </a>
+                    <div className="flex items-center gap-3">
+                        <LLMManagement />
+                        <a
+                            href="https://github.com/DayuanJiang/next-ai-draw-io"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <FaGithub className="w-6 h-6" />
+                        </a>
+                    </div>
                 </div>
                 <div className="flex gap-2 items-center w-full">
-                    <div className="flex-1">
-                        <LLMSelector onModelChange={setCurrentModelId} />
-                    </div>
-                    <LLMManagement />
+                    <LLMSelector onModelChange={setCurrentModelId} />
                 </div>
             </CardHeader>
             <CardContent className="flex-grow overflow-hidden px-2">
