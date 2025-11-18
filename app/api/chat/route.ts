@@ -12,29 +12,50 @@ import { defaultLLMConfig } from '@/lib/llm-config';
 import { LLMModel, LLMProvider } from '@/types/llm';
 
 export const maxDuration = 60
-const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
 
 // Helper function to get the model instance based on provider and model ID
-function getModelInstance(model: LLMModel): any {
+function getModelInstance(model: LLMModel, apiKey?: string, baseUrl?: string): any {
   switch (model.provider) {
     case 'bedrock':
+      // Bedrock uses AWS credentials from environment
       return bedrock(model.modelId);
     case 'openai':
+      // Use provided API key or fallback to environment
+      const openaiKey = apiKey || process.env.OPENAI_API_KEY;
+      if (baseUrl) {
+        const customOpenAI = createOpenAI({
+          baseURL: baseUrl,
+          apiKey: openaiKey,
+        });
+        return customOpenAI(model.modelId);
+      }
+      if (openaiKey && openaiKey !== process.env.OPENAI_API_KEY) {
+        const customOpenAI = createOpenAI({ apiKey: openaiKey });
+        return customOpenAI(model.modelId);
+      }
       return openai(model.modelId);
     case 'google':
+      const googleKey = apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (googleKey && googleKey !== process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+        const customGoogle = createGoogleGenerativeAI({ apiKey: googleKey });
+        return customGoogle(model.modelId);
+      }
       return google(model.modelId);
     case 'openrouter':
-      return openrouter(model.modelId);
+      const openrouterKey = apiKey || process.env.OPENROUTER_API_KEY;
+      const openrouterProvider = createOpenRouter({ apiKey: openrouterKey });
+      return openrouterProvider(model.modelId);
     case 'custom':
-      // For custom providers, try to use OpenAI-compatible API
-      if (model.customEndpoint) {
-        const customProvider = createOpenAI({
-          baseURL: model.customEndpoint,
-          apiKey: process.env.CUSTOM_API_KEY || 'custom-key',
-        });
-        return customProvider(model.modelId);
+      // For custom providers, use OpenAI-compatible API
+      const customEndpoint = baseUrl || model.customEndpoint;
+      if (!customEndpoint) {
+        throw new Error('Custom provider requires baseURL');
       }
-      throw new Error('Custom provider requires customEndpoint');
+      const customProvider = createOpenAI({
+        baseURL: customEndpoint,
+        apiKey: apiKey || process.env.CUSTOM_API_KEY || 'custom-key',
+      });
+      return customProvider(model.modelId);
     default:
       throw new Error(`Unsupported provider: ${model.provider}`);
   }
@@ -62,7 +83,7 @@ function getProviderOptions(model: LLMModel): any {
 
 export async function POST(req: Request) {
   try {
-    const { messages, xml, modelId } = await req.json();
+    const { messages, xml, modelId, apiKey, baseUrl } = await req.json();
 
     const systemMessage = `
 You are an expert diagram creation assistant specializing in draw.io XML generation.
@@ -198,8 +219,8 @@ ${lastMessageText}
 
     console.log(`Using model: ${selectedModel.name} (${selectedModel.modelId})`);
 
-    // Get the model instance
-    const modelInstance = getModelInstance(selectedModel);
+    // Get the model instance with optional API key and base URL
+    const modelInstance = getModelInstance(selectedModel, apiKey, baseUrl);
     const providerOptions = getProviderOptions(selectedModel);
 
     const result = streamText({

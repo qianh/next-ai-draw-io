@@ -156,12 +156,29 @@ export default function ChatPanel() {
                     }
                 }
 
+                // Get provider config for API key
+                const config = LLMConfigManager.getConfig();
+                let apiKey: string | undefined;
+                let baseUrl: string | undefined;
+
+                // Find the provider for the current model
+                for (const provider of config.providers) {
+                    const model = provider.models.find(m => m.id === currentModelId);
+                    if (model) {
+                        apiKey = provider.apiKey;
+                        baseUrl = provider.baseUrl;
+                        break;
+                    }
+                }
+
                 sendMessage(
                     { parts },
                     {
                         body: {
                             xml: chartXml,
                             modelId: currentModelId,
+                            apiKey,
+                            baseUrl,
                         },
                     }
                 );
