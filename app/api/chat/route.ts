@@ -8,13 +8,61 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 import { z } from "zod/v3";
 import { replaceXMLParts } from "@/lib/utils";
+import { defaultLLMConfig } from '@/lib/llm-config';
+import { LLMModel, LLMProvider } from '@/types/llm';
 
 export const maxDuration = 60
 const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
 
+// Helper function to get the model instance based on provider and model ID
+function getModelInstance(model: LLMModel): any {
+  switch (model.provider) {
+    case 'bedrock':
+      return bedrock(model.modelId);
+    case 'openai':
+      return openai(model.modelId);
+    case 'google':
+      return google(model.modelId);
+    case 'openrouter':
+      return openrouter(model.modelId);
+    case 'custom':
+      // For custom providers, try to use OpenAI-compatible API
+      if (model.customEndpoint) {
+        const customProvider = createOpenAI({
+          baseURL: model.customEndpoint,
+          apiKey: process.env.CUSTOM_API_KEY || 'custom-key',
+        });
+        return customProvider(model.modelId);
+      }
+      throw new Error('Custom provider requires customEndpoint');
+    default:
+      throw new Error(`Unsupported provider: ${model.provider}`);
+  }
+}
+
+// Helper function to get provider options based on model
+function getProviderOptions(model: LLMModel): any {
+  switch (model.provider) {
+    case 'bedrock':
+      // Check if it's Claude model for anthropic beta features
+      if (model.modelId.includes('claude') || model.modelId.includes('anthropic')) {
+        return {
+          anthropic: {
+            additionalModelRequestFields: {
+              anthropic_beta: ['fine-grained-tool-streaming-2025-05-14']
+            }
+          }
+        };
+      }
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages, xml } = await req.json();
+    const { messages, xml, modelId } = await req.json();
 
     const systemMessage = `
 You are an expert diagram creation assistant specializing in draw.io XML generation.
@@ -124,33 +172,40 @@ ${lastMessageText}
 
     console.log("Enhanced messages:", enhancedMessages);
 
+    // Find the model to use based on modelId from request or use default
+    let selectedModel: LLMModel | null = null;
+    const requestedModelId = modelId || defaultLLMConfig.activeModelId;
+
+    // Search for the model in all providers
+    for (const provider of defaultLLMConfig.providers) {
+      const foundModel = provider.models.find(m => m.id === requestedModelId);
+      if (foundModel) {
+        selectedModel = foundModel;
+        break;
+      }
+    }
+
+    // Fallback to default model if not found
+    if (!selectedModel) {
+      console.warn(`Model ${requestedModelId} not found, using default`);
+      const defaultProvider = defaultLLMConfig.providers.find(p => p.id === 'bedrock');
+      selectedModel = defaultProvider?.models[0] || null;
+    }
+
+    if (!selectedModel) {
+      throw new Error('No model available');
+    }
+
+    console.log(`Using model: ${selectedModel.name} (${selectedModel.modelId})`);
+
+    // Get the model instance
+    const modelInstance = getModelInstance(selectedModel);
+    const providerOptions = getProviderOptions(selectedModel);
+
     const result = streamText({
-      // model: google("gemini-2.5-flash-preview-05-20"),
-      // model: google("gemini-2.5-pro"),
-      // model: bedrock('anthropic.claude-sonnet-4-20250514-v1:0'),
       system: systemMessage,
-      model: bedrock('global.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-      // model: openrouter('moonshotai/kimi-k2:free'),
-      // model: model,
-      // providerOptions: {
-      //   google: {
-      //     thinkingConfig: {
-      //       thinkingBudget: 128,
-      //     },
-      //   }
-      // },
-      // providerOptions: {
-      //   openai: {
-      //     reasoningEffort: "minimal"
-      //   },
-      // },
-      providerOptions: {
-        anthropic: {
-          additionalModelRequestFields: {
-            anthropic_beta: ['fine-grained-tool-streaming-2025-05-14']
-          }
-        }
-      },
+      model: modelInstance,
+      providerOptions,
       messages: enhancedMessages,
       tools: {
         // Client-side tool that will be executed on the client

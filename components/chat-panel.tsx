@@ -17,6 +17,9 @@ import { ChatInput } from "@/components/chat-input";
 import { ChatMessageDisplay } from "./chat-message-display";
 import { useDiagram } from "@/contexts/diagram-context";
 import { replaceNodes, formatXML } from "@/lib/utils";
+import { LLMSelector } from "@/components/llm-selector";
+import { LLMManagement } from "@/components/llm-management";
+import { LLMConfigManager } from "@/lib/llm-config";
 
 export default function ChatPanel() {
     const {
@@ -46,6 +49,10 @@ export default function ChatPanel() {
     const [files, setFiles] = useState<File[]>([]);
     // Add state for showing the history dialog
     const [showHistory, setShowHistory] = useState(false);
+    // Add state for current model ID
+    const [currentModelId, setCurrentModelId] = useState<string>(() => {
+        return LLMConfigManager.getConfig().activeModelId;
+    });
 
     // Convert File[] to FileList for experimental_attachments
     const createFileList = (files: File[]): FileList => {
@@ -154,6 +161,7 @@ export default function ChatPanel() {
                     {
                         body: {
                             xml: chartXml,
+                            modelId: currentModelId,
                         },
                     }
                 );
@@ -181,16 +189,22 @@ export default function ChatPanel() {
 
     return (
         <Card className="h-full flex flex-col rounded-none py-0 gap-0">
-            <CardHeader className="p-4 flex justify-between items-center">
-                <CardTitle>Next-AI-Drawio</CardTitle>
-                <a
-                    href="https://github.com/DayuanJiang/next-ai-draw-io"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                    <FaGithub className="w-6 h-6" />
-                </a>
+            <CardHeader className="p-4">
+                <div className="flex justify-between items-center mb-3">
+                    <CardTitle>Next-AI-Drawio</CardTitle>
+                    <a
+                        href="https://github.com/DayuanJiang/next-ai-draw-io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                        <FaGithub className="w-6 h-6" />
+                    </a>
+                </div>
+                <div className="flex gap-2 items-center">
+                    <LLMSelector onModelChange={setCurrentModelId} />
+                    <LLMManagement />
+                </div>
             </CardHeader>
             <CardContent className="flex-grow overflow-hidden px-2">
                 <ChatMessageDisplay
