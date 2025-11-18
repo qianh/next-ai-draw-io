@@ -58,6 +58,12 @@ export function LLMManagement() {
   });
 
   useEffect(() => {
+    // Load config immediately on mount
+    loadConfig();
+  }, []);
+
+  useEffect(() => {
+    // Reload config when dialog opens
     if (open) {
       loadConfig();
     }
@@ -319,8 +325,6 @@ export function LLMManagement() {
     loadConfig();
   };
 
-  if (!config) return null;
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -330,6 +334,12 @@ export function LLMManagement() {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        {!config ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">Loading configuration...</p>
+          </div>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle>LLM Provider Management</DialogTitle>
           <DialogDescription>
@@ -740,6 +750,8 @@ export function LLMManagement() {
         <DialogFooter>
           <Button onClick={() => setOpen(false)}>Close</Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
