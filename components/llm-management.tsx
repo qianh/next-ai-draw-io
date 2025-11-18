@@ -324,8 +324,9 @@ export function LLMManagement() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" title="LLM Settings">
+        <Button variant="outline" size="sm" title="LLM Settings" className="gap-2">
           <Settings className="h-4 w-4" />
+          <span>LLM Settings</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">

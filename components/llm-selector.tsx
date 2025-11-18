@@ -43,12 +43,16 @@ export function LLMSelector({ onModelChange }: LLMSelectorProps) {
   };
 
   if (models.length === 0) {
-    return null;
+    return (
+      <div className="flex-1 text-sm text-gray-500 italic">
+        No models available. Click "LLM Settings" to configure.
+      </div>
+    );
   }
 
   return (
     <Select value={activeModelId} onValueChange={handleModelChange}>
-      <SelectTrigger className="w-[250px]">
+      <SelectTrigger className="w-full">
         <SelectValue placeholder="Select a model" />
       </SelectTrigger>
       <SelectContent>

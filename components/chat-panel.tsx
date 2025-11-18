@@ -206,8 +206,8 @@ export default function ChatPanel() {
 
     return (
         <Card className="h-full flex flex-col rounded-none py-0 gap-0">
-            <CardHeader className="p-4">
-                <div className="flex justify-between items-center mb-3">
+            <CardHeader className="p-4 space-y-3">
+                <div className="flex justify-between items-center">
                     <CardTitle>Next-AI-Drawio</CardTitle>
                     <a
                         href="https://github.com/DayuanJiang/next-ai-draw-io"
@@ -218,8 +218,10 @@ export default function ChatPanel() {
                         <FaGithub className="w-6 h-6" />
                     </a>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <LLMSelector onModelChange={setCurrentModelId} />
+                <div className="flex gap-2 items-center w-full">
+                    <div className="flex-1">
+                        <LLMSelector onModelChange={setCurrentModelId} />
+                    </div>
                     <LLMManagement />
                 </div>
             </CardHeader>
